@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using System.Web.Script.Serialization;
 using System.Web.SessionState;
 using Cognifide.PowerShell.Commandlets.Interactive.Messages;
 using Cognifide.PowerShell.Commandlets.Security;
@@ -61,6 +62,7 @@ namespace Cognifide.PowerShell.Console.Services
             var itemParam = request.Params.Get("script");
             var pathParam = request.Params.Get("path");
             var originParam = request.Params.Get("scriptDb");
+            var splitOnGuid = request.Params.Get("splitOnGuid");
             var apiVersion = request.Params.Get("apiVersion");
             var serviceMappingKey = request.HttpMethod + "/" + apiVersion;
             var isUpload = request.HttpMethod.Is("POST") && request.InputStream.Length > 0;
@@ -209,13 +211,17 @@ namespace Cognifide.PowerShell.Console.Services
                     if(request.InputStream != null)
                     {
                         string script = null;
+                        string cliXmlArgs = null;
                         using (var ms = new MemoryStream())
                         {
                             request.InputStream.CopyTo(ms);
                             var bytes = ms.ToArray();
-                            script = Encoding.UTF8.GetString(bytes);
+                            string requestBody = Encoding.UTF8.GetString(bytes);
+                            var splitBody = requestBody.Split(new string[] { string.Format("<#{0}#>", splitOnGuid) }, StringSplitOptions.None);
+                            script = splitBody[1];
+                            cliXmlArgs = splitBody[0];
                         }
-                        ProcessScript(context, script, null);
+                        ProcessScript(context, script, null, cliXmlArgs);
                     }
                     return;
                 default:
@@ -547,7 +553,7 @@ namespace Cognifide.PowerShell.Console.Services
             ProcessScript(context, script, streams);
         }
 
-        private static void ProcessScript(HttpContext context, string script, Dictionary<string, Stream> streams)
+        private static void ProcessScript(HttpContext context, string script, Dictionary<string, Stream> streams, string cliXmlArgs = null)
         {
             if(string.IsNullOrEmpty(script))
             {
@@ -567,6 +573,13 @@ namespace Cognifide.PowerShell.Console.Services
                 context.Response.ContentType = "text/plain";
 
                 var scriptArguments = new Hashtable();
+
+                if (!String.IsNullOrEmpty(cliXmlArgs))
+                {
+                    session.SetVariable("cliXmlArgs", cliXmlArgs);
+                    session.ExecuteScriptPart("$params = ConvertFrom-CliXml -InputObject $cliXmlArgs", false, true);
+                    script = script.TrimEnd(' ', '\t', '\n');
+                }
 
                 foreach (var param in HttpContext.Current.Request.QueryString.AllKeys)
                 {

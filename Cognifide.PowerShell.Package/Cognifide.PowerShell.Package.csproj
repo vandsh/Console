@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Cognifide.PowerShell.Package</RootNamespace>
     <AssemblyName>Cognifide.PowerShell.Package</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -67,16 +67,16 @@
   </Target>
   -->
   <ItemGroup>
-    <AssemblyFiles Include="$(TargetDir)Cognifide.PowerShell*.*" >
+    <AssemblyFiles Include="$(TargetDir)Cognifide.PowerShell*.*">
       <Visible>false</Visible>
     </AssemblyFiles>
     <ProjectDeployPathFiles Include="$(ProjectDeployPath)\**\*.*">
       <Visible>false</Visible>
     </ProjectDeployPathFiles>
-  </ItemGroup> 
+  </ItemGroup>
   <PropertyGroup>
     <ScriptLocation Condition=" '$(ScriptLocation)'=='' ">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\Post_Build.ps1'))</ScriptLocation>
-  </PropertyGroup> 
+  </PropertyGroup>
   <Target Name="AfterBuild">
     <Copy SourceFiles="@(AssemblyFiles)" DestinationFolder="$(ProjectDeployPath)\bin" ContinueOnError="true" />
     <Exec Command="PowerShell -NonInteractive -ExecutionPolicy Unrestricted -File &quot;$(ScriptLocation)&quot; -ProjectFilter &quot;$(MSBuildProjectName)&quot;" />
